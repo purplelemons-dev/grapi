@@ -20,14 +20,14 @@ class Handler(socketserver.BaseRequestHandler):
 
     def route_request(self):
         try:
-            view: Callable[[Request, Response], Response] = self.routes[self.method][
+            response_function: Callable[[Request, Response], Response] = self.routes[self.method][
                 self.path
             ]
-            self.response = view(self._request, self._response)
+            self.response = response_function(self._request, self._response)
         except KeyError:
             self.response.status_code = 404
             self.response.body = "Not Found"
-        self.request.sendall(self._response.encode())
+        self.request.sendall(self.response.encode())
 
 
 class Server(socketserver.TCPServer):
