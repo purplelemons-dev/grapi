@@ -13,8 +13,17 @@ class Handler(socketserver.BaseRequestHandler):
     views_dir: str
     protocol_version: str
 
+    def recv_all(self) -> bytes:
+        data = b""
+        while True:
+            chunk = self.request.recv(SERVER_CHUNK_SIZE)
+            data += chunk
+            if len(chunk) < SERVER_CHUNK_SIZE:
+                break
+        return data
+
     def handle(self):
-        self.data = self.request.recv(SERVER_CHUNK_SIZE).strip().decode()
+        self.data = self.recv_all().decode()
         self.method, self.path, *_ = self.data.split("\r\n")[0].split(" ")
         self.body = "\r\n\r\n".join(self.data.split("\r\n\r\n")[1:])
         # hot garbage dont look plz
@@ -22,12 +31,17 @@ class Handler(socketserver.BaseRequestHandler):
             header: ":".join(value)
             for header, *value in [
                 split.replace(": ", ":", 1).split(":")
-                for split in self.data.split("\r\n")[1:]
+                for split in self.data.split("\r\n\r\n")[0].split("\r\n")[1:]
             ]
         }
         self._request = Request(self.path, Headers(**self.headers), self.body)
         self._response = Response(self.views_dir, self.protocol_version)
         self.route_request()
+        try:
+            if self.headers["connection"] == "close":
+                self.request.close()
+        except KeyError:
+            pass
 
     def route_request(self):
         try:
