@@ -54,15 +54,20 @@ class Response:
         if "." not in path.split("/")[-1]:
             self.file(f"{self.views_dir}/{path}.html")
             self.headers["content-type"] = "text/html"
-            self.body.replace(
+            self.body = self.body.replace(
                 "</head>", f"<link rel='stylesheet' href='{path}.css'></head>"
             )
-            self.body += f"<script src='{path}.js'></script>"
+            self.body = self.body.replace(
+                "</html>", f"<script src='{path}.js'></script></html>"
+            )
+            print(self.body)
             self.render(**kwargs)
         elif path.endswith(".css"):
+            path = path.replace(".css", "/.css")
             self.headers["content-type"] = "text/css"
-            self.file(f"{self.views_dir}/{path}/.css")
+            self.file(f"{self.views_dir}/{path}")
         elif path.endswith(".js"):
+            path = path.replace(".js", "/.js")
             self.headers["content-type"] = "text/javascript"
-            self.file(f"{self.views_dir}/{path}/.js")
+            self.file(f"{self.views_dir}/{path}")
         return self
